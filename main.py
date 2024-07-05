@@ -7,7 +7,9 @@ def work_with_phonebook():
             print_result(phone_book)  # Показать весь справочник
         elif choice == 2:
             last_name = input('Введите фамилию: ')
-            print(find_by_lastname(phone_book, last_name))  # Найти абонента по фамилии
+            found_contacts = find_by_lastname(phone_book, last_name)  # Найти абонента по фамилии
+            for contact in found_contacts:
+                print(contact)  # Показать найденные контакты
         elif choice == 3:
             number = input('Введите номер телефона: ')
             print(find_by_number(phone_book, number))  # Найти абонента по номеру телефона
@@ -17,13 +19,17 @@ def work_with_phonebook():
             write_txt('phon.txt', phone_book)  # Сохранить изменения в файл
         elif choice == 5:
             last_name = input('Введите фамилию: ')
-            new_number = input('Введите новый номер: ')
-            print(change_number(phone_book, last_name, new_number))  # Изменить номер абонента
-            write_txt('phon.txt', phone_book)  # Сохранить изменения в файл
+            contact_index = select_contact_by_lastname(phone_book, last_name)
+            if contact_index is not None:
+                new_number = input('Введите новый номер: ')
+                print(change_number(phone_book, contact_index, new_number))  # Изменить номер абонента
+                write_txt('phon.txt', phone_book)  # Сохранить изменения в файл
         elif choice == 6:
             last_name = input('Введите фамилию: ')
-            print(delete_by_lastname(phone_book, last_name))  # Удалить абонента по фамилии
-            write_txt('phon.txt', phone_book)  # Сохранить изменения в файл
+            contact_index = select_contact_by_lastname(phone_book, last_name)
+            if contact_index is not None:
+                print(delete_by_lastname(phone_book, contact_index))  # Удалить абонента по фамилии
+                write_txt('phon.txt', phone_book)  # Сохранить изменения в файл
         elif choice == 7:
             source_file = input('Введите имя исходного файла: ')
             target_file = input('Введите имя целевого файла: ')
@@ -82,28 +88,29 @@ def print_result(phone_book):
         print(' '.join(value for value in record.values()))
 
 def find_by_lastname(phone_book, last_name):
-    # Найти записи по фамилии
-    return [record for record in phone_book if record['Фамилия'] == last_name]
+    # Найти записи по фамилии и вернуть их в виде строки с пробелами между значениями
+    for record in phone_book:
+        return (' '.join(record.values()) for record in phone_book if record['Фамилия'] == last_name)
+
 
 def find_by_number(phone_book, number):
     # Найти записи по номеру телефона
-    return [record for record in phone_book if record['Телефон'] == number]
+    found_contacts = [ ' '.join(record.values()) for record in phone_book if record['Телефон'] == number ]
+    if found_contacts:
+        return found_contacts[0]  # Вернуть первый найденный контакт в виде строки
+    else:
+        return f'Контакт с номером телефона {number} не найден.'
 
-def change_number(phone_book, last_name, new_number):
-    # Изменить номер телефона абонента по фамилии
-    for record in phone_book:
-        if record['Фамилия'] == last_name:
-            record['Телефон'] = new_number
-            return f'Number for {last_name} changed to {new_number}'
-    return f'No entry found for last name {last_name}'
 
-def delete_by_lastname(phone_book, last_name):
-    # Удалить запись по фамилии
-    for record in phone_book:
-        if record['Фамилия'] == last_name:
-            phone_book.remove(record)
-            return f'Entry for {last_name} deleted'
-    return f'No entry found for last name {last_name}'
+def change_number(phone_book, index, new_number):
+    # Изменить номер телефона абонента по индексу
+    phone_book[index]['Телефон'] = new_number
+    return f'Number changed to {new_number}'
+
+def delete_by_lastname(phone_book, index):
+    # Удалить запись по индексу
+    deleted_record = phone_book.pop(index)
+    return f'Entry for {deleted_record["Фамилия"]} deleted'
 
 def add_user(phone_book, user_data):
     # Добавить новую запись
@@ -125,5 +132,26 @@ def copy_contact(source_file, target_file, last_name):
         print(f'Контакт {last_name} успешно скопирован из {source_file} в {target_file}.')
     else:
         print(f'Контакт с фамилией {last_name} не найден в файле {source_file}.')
+
+def select_contact_by_lastname(phone_book, last_name):
+    # Найти записи по фамилии и предложить пользователю выбрать нужный контакт
+    contacts = find_by_lastname(phone_book, last_name)
+    if not contacts:
+        print(f'Контакты с фамилией {last_name} не найдены.')
+        return None
+    if len(contacts) == 1:
+        return phone_book.index(contacts[0])  # Вернуть индекс единственного контакта
+    print(f'Найдено несколько контактов с фамилией {last_name}:')
+    for index, contact in enumerate(contacts):
+        print(f"{index + 1}: {' '.join(contact.values())}")
+    while True:
+        try:
+            selection = int(input('Выберите номер контакта: '))  # Предложить пользователю выбрать контакт
+            if 1 <= selection <= len(contacts):
+                return phone_book.index(contacts[selection - 1])  # Вернуть индекс выбранного контакта
+            else:
+                print(f"Введите число от 1 до {len(contacts)}.")
+        except ValueError:
+            print("Введите допустимое число.")
 
 work_with_phonebook()
